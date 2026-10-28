@@ -1,0 +1,15 @@
+# Ultralytics YOLO Dataset Configuration File
+# IoT Lab Equipment Vision Model
+
+path: ../training/data  # Dataset root path (relative to execution)
+train: images/train     # 70% of dataset
+val: images/val         # 20% of dataset
+test: images/test       # 10% of dataset (optional validation)
+
+# Class Taxonomy
+names:
+  0: 3d_printer
+  1: dell_monitor
+  2: microcontroller
+  3: oscilloscope
+  4: soldering_station
