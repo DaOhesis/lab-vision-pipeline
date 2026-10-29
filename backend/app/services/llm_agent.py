@@ -84,7 +84,11 @@ class LLMAgentService:
                 res = await client.post(url, json=payload)
                 if res.status_code == 200:
                     data = res.json()
-                    return data.get("response", "").strip()
+                    resp = data.get("response", "").strip()
+                    # Normalize unicode punctuation for cross-platform Windows terminal safety
+                    resp = resp.replace('\u2011', '-').replace('\u2013', '-').replace('\u2014', '-')
+                    resp = resp.replace('\u2018', "'").replace('\u2019', "'").replace('\u201c', '"').replace('\u201d', '"')
+                    return resp
                 else:
                     logger.warning(f"[LLM] Ollama returned status {res.status_code}: {res.text}")
                     return None

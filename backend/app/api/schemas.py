@@ -23,6 +23,8 @@ class TelemetryResponse(BaseModel):
     detections: List[DetectionItem]
     image_width: int
     image_height: int
+    commentary: Optional[Dict[str, Any]] = None
+    active_model: Optional[str] = None
 
 class WebSocketMessage(BaseModel):
     type: str = "frame_telemetry"

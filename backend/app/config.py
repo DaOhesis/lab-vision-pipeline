@@ -42,7 +42,7 @@ class Settings(BaseSettings):
 
     # Local LLM Agent settings (Ollama)
     OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen2.5:1.5b")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "lfm3:1.7b")
     OLLAMA_TIMEOUT: float = float(os.getenv("OLLAMA_TIMEOUT", "15.0"))
     
     # CORS Origins for Frontend Integration

@@ -32,12 +32,21 @@ export function useLabStream() {
         try {
           const data: WebSocketFrameMessage = JSON.parse(event.data);
           if (data.type === "live_commentary" && data.commentary) {
-            setLatestCommentary(data.commentary);
-            setCommentaryFeed((prev) => [data.commentary!, ...prev.slice(0, 20)]);
+            const newComm = data.commentary;
+            setLatestCommentary(newComm);
+            setCommentaryFeed((prev) => {
+              if (prev.length > 0 && prev[0].id === newComm.id) return prev;
+              return [newComm, ...prev.slice(0, 24)];
+            });
           } else if (data.telemetry) {
             setTelemetry(data.telemetry);
             if (data.telemetry.latest_commentary) {
-              setLatestCommentary(data.telemetry.latest_commentary);
+              const newComm = data.telemetry.latest_commentary;
+              setLatestCommentary(newComm);
+              setCommentaryFeed((prev) => {
+                if (prev.length > 0 && prev[0].id === newComm.id) return prev;
+                return [newComm, ...prev.slice(0, 24)];
+              });
             }
           }
           if (data.annotated_frame_base64) {

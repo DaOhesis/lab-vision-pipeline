@@ -242,3 +242,11 @@ async def get_lab_briefing():
         latency_ms=latency,
         timestamp=time.time()
     )
+
+@router.get("/commentary/history")
+async def get_commentary_history():
+    """Returns the chronological timeline of live commentary events."""
+    return {
+        "history": commentary_engine.commentary_history,
+        "latest": commentary_engine.last_commentary
+    }
