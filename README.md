@@ -102,7 +102,36 @@ All components run locally on your machine with low-latency streaming and zero c
 
 ## Quickstart: Running the System Locally
 
-### Step 1: Start the FastAPI Backend
+### Option 1: All-in-One Launcher (Recommended - 1 Click / 1 Line)
+
+No need to open multiple terminals! Run the complete stack (Backend + Frontend + Webcam Streamer) in one command:
+
+```bash
+# Windows Batch (or double-click start.bat in File Explorer):
+.\start.bat
+
+# Or via Python:
+python start.py
+
+# Or via npm:
+npm start
+```
+
+**Features included:**
+- Starts FastAPI Backend, Next.js Frontend, and Webcam Streamer in synchronization.
+- Waits for Backend health check before starting the webcam stream.
+- Automatically launches your browser to `http://localhost:3000`.
+- Color-coded unified terminal output with graceful shutdown on `Ctrl+C`.
+- **Separate Windows Mode**: Want separate windows? Double-click `start_windows.bat` or run `python start.py --split`.
+- **Clean Stop**: Run `.\stop.bat` to instantly stop all services and free ports 8000 & 3000.
+
+---
+
+### Option 2: Manual Multi-Terminal Setup (Legacy)
+
+If you prefer running services in separate manual terminals:
+
+#### Step 1: Start the FastAPI Backend
 
 Open **Terminal 1**:
 ```bash

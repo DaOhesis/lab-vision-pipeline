@@ -1,0 +1,10 @@
+{
+  "name": "iot-lab-vision",
+  "version": "1.0.0",
+  "description": "IoT Lab Vision Intelligence Pipeline",
+  "scripts": {
+    "start": "python start.py",
+    "start:windows": "python start.py --split",
+    "stop": "cmd /c stop.bat"
+  }
+}
