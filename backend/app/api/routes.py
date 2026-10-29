@@ -9,7 +9,14 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.services.detector import detector
 from app.services.stream_manager import stream_manager
-from app.api.schemas import HealthStatus, TelemetryResponse
+from app.services.llm_agent import llm_agent
+from app.api.schemas import (
+    HealthStatus,
+    TelemetryResponse,
+    AgentQueryRequest,
+    AgentQueryResponse,
+    AgentBriefingResponse
+)
 
 router = APIRouter()
 logger = logging.getLogger("uvicorn.error")
@@ -126,4 +133,43 @@ async def health_check():
         active_ws_clients=len(stream_manager.active_connections),
         total_frames_processed=processed_frames_count,
         uptime_seconds=round(time.time() - server_start_time, 2)
+    )
+
+@router.post("/agent/query", response_model=AgentQueryResponse)
+async def query_lab_agent(request: AgentQueryRequest):
+    """
+    Asks the local SLM agent (Qwen 2.5 1.5B via Ollama) a natural language question
+    grounded strictly in the live laboratory computer vision scene.
+    """
+    answer, model_name, latency = await llm_agent.answer_query(
+        question=request.question,
+        telemetry=stream_manager.latest_telemetry,
+        history=request.history
+    )
+    return AgentQueryResponse(
+        answer=answer,
+        model_used=model_name,
+        latency_ms=latency,
+        timestamp=time.time()
+    )
+
+@router.get("/agent/briefing", response_model=AgentBriefingResponse)
+async def get_lab_briefing():
+    """
+    Generates an automated executive situation report and safety assessment
+    synthesized by the local SLM based on the latest detected equipment.
+    """
+    summary, safety_eval, safety_status, model_name, latency = await llm_agent.generate_briefing(
+        telemetry=stream_manager.latest_telemetry
+    )
+    counts = stream_manager.latest_telemetry.get("equipment_counts", {}) if stream_manager.latest_telemetry else {}
+
+    return AgentBriefingResponse(
+        summary=summary,
+        safety_assessment=safety_eval,
+        safety_status=safety_status,
+        equipment_tally=counts,
+        model_used=model_name,
+        latency_ms=latency,
+        timestamp=time.time()
     )

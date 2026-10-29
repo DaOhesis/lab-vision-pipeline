@@ -37,3 +37,22 @@ class HealthStatus(BaseModel):
     active_ws_clients: int
     total_frames_processed: int
     uptime_seconds: float
+
+class AgentQueryRequest(BaseModel):
+    question: str = Field(..., description="User question about the laboratory scene or equipment")
+    history: Optional[List[Dict[str, str]]] = Field(default=[], description="Prior chat turns [{'role': 'user'|'assistant', 'content': '...'}]")
+
+class AgentQueryResponse(BaseModel):
+    answer: str
+    model_used: str
+    latency_ms: float
+    timestamp: float
+
+class AgentBriefingResponse(BaseModel):
+    summary: str
+    safety_assessment: str
+    safety_status: str = Field("nominal", description="'nominal', 'caution', or 'hazard'")
+    equipment_tally: Dict[str, int]
+    model_used: str
+    latency_ms: float
+    timestamp: float

@@ -1,6 +1,6 @@
 # IoT Lab Vision Intelligence Pipeline
 
-An end-to-end edge-to-cloud computer vision pipeline designed for real-time laboratory equipment tracking (3D printers, monitors, microcontrollers, oscilloscopes, soldering stations) using an **ESP32-CAM**, **FastAPI**, **PyTorch / YOLO11**, and **Next.js**.
+An end-to-end edge-to-cloud computer vision and intelligent reasoning pipeline designed for real-time laboratory equipment tracking (3D printers, monitors, microcontrollers, oscilloscopes, soldering stations) using an **ESP32-CAM**, **FastAPI**, **PyTorch / YOLO11**, **Qwen 2.5 1.5B (Local SLM)**, and **Next.js**.
 
 All components run locally on your machine with low-latency streaming and zero containerization overhead.
 
@@ -9,33 +9,39 @@ All components run locally on your machine with low-latency streaming and zero c
 ## System Architecture
 
 ```
-+------------------+         Local Wi-Fi (LAN)         +-----------------------------------------+
-|    ESP32-CAM     |  ===============================>  |              LOCAL BACKEND              |
-| (AI-Thinker Dev) |    HTTP POST (Multipart/Binary)   |                (FastAPI)                |
-|                  |                                   |  +-----------------------------------+  |
-| - OV2640 Sensor  |                                   |  | Ingestion: POST /api/v1/frame     |  |
-| - C++ / FreeRTOS |                                   |  +-----------------+-----------------+  |
-+------------------+                                   |                    |                    |
-                                                       |         [asyncio.Queue (LIFO)]          |
-                                                       |                    v                    |
-                                                       |  +-----------------------------------+  |
-                                                       |  | Vision Engine (PyTorch / YOLO11n) |  |
-                                                       |  | - Class Inference & Box Regress   |  |
-                                                       |  | - Equipment Count & Spatial Map   |  |
-                                                       |  +-----------------+-----------------+  |
-                                                       |                    |                    |
-                                                       |        [WebSocket Broadcast Hub]        |
-                                                       +--------------------+--------------------+
-                                                                            |  ws://localhost:8000/ws
-                                                                            v
-                                                       +-----------------------------------------+
-                                                       |            LOCAL DASHBOARD              |
-                                                       |               (Next.js)                 |
-                                                       |                                         |
-                                                       | - HTML5 Canvas Bounding Box Overlay    |
-                                                       | - Equipment Telemetry & Inventory Tally |
-                                                       | - Sensor Latency & Health Indicator     |
-                                                       +-----------------------------------------+
++------------------+         Local Wi-Fi (LAN)         +-----------------------------------------------------+
+|    ESP32-CAM     |  ===============================>  |                   LOCAL BACKEND                     |
+| (AI-Thinker Dev) |    HTTP POST (Multipart/Binary)   |                     (FastAPI)                       |
+|                  |                                   |  +-----------------------------------------------+  |
+| - OV2640 Sensor  |                                   |  | Ingestion: POST /api/v1/telemetry/frame       |  |
+| - C++ / FreeRTOS |                                   |  +-----------------------+-----------------------+  |
++------------------+                                   |                          |                          |
+                                                       |               [asyncio.Queue (LIFO)]                |
+                                                       |                          v                          |
+                                                       |  +-----------------------------------------------+  |
+                                                       |  | Vision Engine (PyTorch / YOLO11n)             |  |
+                                                       |  | - Class Inference & Box Regress               |  |
+                                                       |  | - Equipment Count & Spatial Coordinate Map    |  |
+                                                       |  +-----------------------+-----------------------+  |
+                                                       |                          |                          |
+                                                       |  +-----------------------v-----------------------+  |
+                                                       |  | Local SLM Agent (Qwen 2.5 1.5B via Ollama)    |  |
+                                                       |  | - Live Situation Briefings & Safety Scoring   |  |
+                                                       |  | - Natural Language Q&A over Scene State       |  |
+                                                       |  +-----------------------+-----------------------+  |
+                                                       |                          |                          |
+                                                       |              [WebSocket Broadcast Hub]              |
+                                                       +--------------------------+--------------------------+
+                                                                                  |  ws://localhost:8000/ws
+                                                                                  v
+                                                       +-----------------------------------------------------+
+                                                       |                   LOCAL DASHBOARD                   |
+                                                       |                      (Next.js)                      |
+                                                       |                                                     |
+                                                       | - HTML5 Canvas Bounding Box & SVG Overlays          |
+                                                       | - Equipment Telemetry & Inventory Tally             |
+                                                       | - Interactive "Lab AI Copilot" Q&A Chat Panel       |
+                                                       +-----------------------------------------------------+
 ```
 
 ---

@@ -24,3 +24,29 @@ export interface WebSocketFrameMessage {
 }
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error";
+
+export interface AgentQueryResponse {
+  answer: string;
+  model_used: string;
+  latency_ms: number;
+  timestamp: number;
+}
+
+export interface AgentBriefingResponse {
+  summary: string;
+  safety_assessment: string;
+  safety_status: "nominal" | "caution" | "hazard";
+  equipment_tally: Record<string, number>;
+  model_used: string;
+  latency_ms: number;
+  timestamp: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  sender: "user" | "assistant";
+  text: string;
+  modelUsed?: string;
+  latencyMs?: number;
+  timestamp: number;
+}
