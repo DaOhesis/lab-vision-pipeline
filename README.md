@@ -144,19 +144,29 @@ npm run dev
 
 ### Step 3: Stream Frames to the Backend
 
-You can stream frames either via the included **software simulator** or via the **physical ESP32-CAM**:
+You can stream frames using your preferred method:
 
-#### Option A: Run the Camera Simulator (No Hardware Required)
+#### Option A: Directly inside the Next.js Browser Dashboard (Zero Setup)
+1. Open the dashboard at `http://localhost:3000`.
+2. In the viewport top bar, toggle the source button from **ESP32 / Stream** to **Laptop Camera**.
+3. Allow browser camera permissions when prompted. The dashboard will automatically stream live frames to FastAPI and render bounding boxes in real-time!
+
+#### Option B: Dedicated Laptop Webcam Python Streamer
 Open **Terminal 3** (with your Python `venv` active):
 ```bash
-# Stream synthetic laboratory test bench frames every 1.5s:
-python backend/scripts/simulate_camera.py
+# Stream laptop webcam with live OpenCV preview:
+python run_webcam.py
 
-# Or stream frames directly from your PC's webcam:
-python backend/scripts/simulate_camera.py --webcam --interval 1.0
+# Or customize FPS and camera device:
+python run_webcam.py --fps 8 --device-index 0
 ```
 
-#### Option B: Flash the Physical ESP32-CAM
+#### Option C: Synthetic Hardware Simulator
+```bash
+python backend/scripts/simulate_camera.py
+```
+
+#### Option D: Flash the Physical ESP32-CAM
 1. Edit [`firmware/include/config.h`](firmware/include/config.h) with your Wi-Fi SSID, password, and local PC IP.
 2. Connect GPIO 0 to GND and flash using PlatformIO:
    ```bash
