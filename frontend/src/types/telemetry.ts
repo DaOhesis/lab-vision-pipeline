@@ -62,3 +62,23 @@ export interface ChatMessage {
   latencyMs?: number;
   timestamp: number;
 }
+
+export interface ProjectIdea {
+  id: string;
+  title: string;
+  category: string;
+  difficulty: "Beginner" | "Intermediate" | "Advanced" | string;
+  matched_components: string[];
+  summary: string;
+  architecture: string;
+  wiring_summary: string;
+  firmware_snippet?: string | null;
+  host_snippet?: string | null;
+  steps: string[];
+}
+
+export interface ProjectCurrentResponse {
+  detected_components: string[];
+  projects: ProjectIdea[];
+  timestamp: number;
+}

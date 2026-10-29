@@ -12,6 +12,7 @@ from app.services.detector import detector
 from app.services.stream_manager import stream_manager
 from app.services.llm_agent import llm_agent
 from app.services.commentary_engine import commentary_engine
+from app.services.project_guide import project_guide
 from app.api.schemas import (
     HealthStatus,
     TelemetryResponse,
@@ -251,3 +252,44 @@ async def get_commentary_history():
         "history": commentary_engine.commentary_history,
         "latest": commentary_engine.last_commentary
     }
+
+@router.get("/projects/current")
+async def get_current_project_recommendations():
+    """
+    Returns tailored IoT project suggestions and build guides based on
+    hardware components currently visible in the live camera feed.
+    """
+    telemetry = stream_manager.latest_telemetry
+    detected_classes = []
+    if telemetry:
+        detected_classes = [d.get("class_name") for d in telemetry.get("detections", [])]
+    
+    # If no detections currently in camera, default to standard lab suite
+    if not detected_classes:
+        detected_classes = ["raspberry_pi", "microcontroller"]
+
+    curated = project_guide.find_curated_matches(detected_classes)
+    return {
+        "detected_components": list(set(detected_classes)),
+        "projects": curated,
+        "timestamp": time.time()
+    }
+
+@router.post("/projects/ideate")
+async def ideate_projects_with_ai(request: Request):
+    """
+    Invokes local SLM reasoning to generate customized project builds,
+    wiring pinouts, and code instructions for specified or detected hardware.
+    """
+    data = await request.json()
+    components = data.get("components", [])
+    user_goal = data.get("goal", None)
+
+    if not components and stream_manager.latest_telemetry:
+        components = [d.get("class_name") for d in stream_manager.latest_telemetry.get("detections", [])]
+    
+    if not components:
+        components = ["raspberry_pi", "microcontroller"]
+
+    result = await project_guide.generate_custom_project_ideas(components, user_goal)
+    return result

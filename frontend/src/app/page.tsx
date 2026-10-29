@@ -7,11 +7,13 @@ import { VideoCanvas } from "@/components/VideoCanvas";
 import { DetectionFeed } from "@/components/DetectionFeed";
 import { LabAssistant } from "@/components/LabAssistant";
 import { CommentaryTicker } from "@/components/CommentaryTicker";
-import { ListFilter, Bot, Eye, Layers, Mic } from "lucide-react";
+import { ProjectIdeator } from "@/components/ProjectIdeator";
+import { ListFilter, Bot, Eye, Layers, Mic, Wrench } from "lucide-react";
 
 export default function DashboardPage() {
   const { status, telemetry, frameImage, fps, latestCommentary, commentaryFeed, reconnect } = useLabStream();
-  const [activeSideTab, setActiveSideTab] = useState<"narrator" | "audit" | "copilot">("narrator");
+  const [activeSideTab, setActiveSideTab] = useState<"narrator" | "builder" | "audit" | "copilot">("builder");
+  const [queuedQuestion, setQueuedQuestion] = useState<string | null>(null);
 
   const detections = telemetry?.detections || [];
   const latencyMs = telemetry?.inference_latency_ms || 0;
@@ -91,45 +93,64 @@ export default function DashboardPage() {
           {/* Right Panel: Side Tab Switcher (4 Columns) */}
           <div className="lg:col-span-4 flex flex-col space-y-3">
             {/* Tab Selector */}
-            <div className="flex rounded-xl bg-slate-900/90 p-1 border border-slate-800 text-xs shadow-md">
+            <div className="grid grid-cols-4 rounded-xl bg-slate-900/90 p-1 border border-slate-800 text-xs shadow-md gap-1">
+              <button
+                onClick={() => setActiveSideTab("builder")}
+                className={`inline-flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition-all ${
+                  activeSideTab === "builder"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-sm font-semibold"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Wrench className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="truncate">Builder</span>
+              </button>
               <button
                 onClick={() => setActiveSideTab("narrator")}
-                className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg font-medium transition-all ${
+                className={`inline-flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition-all ${
                   activeSideTab === "narrator"
                     ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow-sm font-semibold"
                     : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 <Mic className="w-3.5 h-3.5 text-rose-400" />
-                AI Narrator
+                <span className="truncate">Narrator</span>
               </button>
               <button
                 onClick={() => setActiveSideTab("audit")}
-                className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg font-medium transition-all ${
+                className={`inline-flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition-all ${
                   activeSideTab === "audit"
                     ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm font-semibold"
                     : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                <ListFilter className="w-3.5 h-3.5" />
-                Objects ({detections.length})
+                <ListFilter className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="truncate">Objects</span>
               </button>
               <button
                 onClick={() => setActiveSideTab("copilot")}
-                className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg font-medium transition-all ${
+                className={`inline-flex items-center justify-center gap-1 py-2 rounded-lg font-medium transition-all ${
                   activeSideTab === "copilot"
                     ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm font-semibold"
                     : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                <Bot className="w-3.5 h-3.5" />
-                AI Chat
+                <Bot className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="truncate">AI Chat</span>
               </button>
             </div>
 
             {/* Active Panel View */}
-            <div className="h-[490px]">
-              {activeSideTab === "narrator" ? (
+            <div className="h-[650px]">
+              {activeSideTab === "builder" ? (
+                <ProjectIdeator
+                  detections={detections}
+                  onAskCopilot={(q) => {
+                    setQueuedQuestion(q);
+                    setActiveSideTab("copilot");
+                  }}
+                />
+              ) : activeSideTab === "narrator" ? (
                 <CommentaryTicker
                   commentaryFeed={commentaryFeed}
                   latestCommentary={latestCommentary}
@@ -140,7 +161,10 @@ export default function DashboardPage() {
                   timestampMs={telemetry?.timestamp_ms}
                 />
               ) : (
-                <LabAssistant />
+                <LabAssistant
+                  queuedQuestion={queuedQuestion}
+                  onQuestionHandled={() => setQueuedQuestion(null)}
+                />
               )}
             </div>
           </div>

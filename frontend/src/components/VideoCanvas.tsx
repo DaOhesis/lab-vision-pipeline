@@ -473,12 +473,38 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
         {/* Live Broadcast Commentary Overlay Banner */}
         {showCommentary && activeBanner && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 max-w-[94%] sm:max-w-xl transition-all duration-300 pointer-events-none select-none">
-            <div className="flex items-center gap-2.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-slate-950/90 backdrop-blur-md border border-cyan-500/50 shadow-2xl text-slate-100">
-              <div className="flex items-center gap-1.5 shrink-0 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold tracking-wider uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-                AI NARRATOR
+            <div
+              className={`flex items-center gap-2.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-slate-950/90 backdrop-blur-md shadow-2xl text-slate-100 ${
+                activeBanner.action_type === "iot_hardware_combo"
+                  ? "border-2 border-emerald-400/80 shadow-emerald-500/20"
+                  : "border border-cyan-500/50"
+              }`}
+            >
+              <div
+                className={`flex items-center gap-1.5 shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase ${
+                  activeBanner.action_type === "iot_hardware_combo"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                    : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                }`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full animate-ping ${
+                    activeBanner.action_type === "iot_hardware_combo"
+                      ? "bg-emerald-400"
+                      : "bg-rose-500"
+                  }`}
+                />
+                {activeBanner.action_type === "iot_hardware_combo"
+                  ? "IOT LAB BUILDER"
+                  : "AI NARRATOR"}
               </div>
-              <p className="text-xs sm:text-sm font-medium text-cyan-200 line-clamp-2">
+              <p
+                className={`text-xs sm:text-sm font-medium line-clamp-2 ${
+                  activeBanner.action_type === "iot_hardware_combo"
+                    ? "text-emerald-200"
+                    : "text-cyan-200"
+                }`}
+              >
                 {activeBanner.text}
               </p>
             </div>

@@ -33,9 +33,10 @@ class Settings(BaseSettings):
     
     # Target Lab Equipment Taxonomy
     LAB_CLASSES: List[str] = [
+        "raspberry_pi",
+        "microcontroller",
         "3d_printer",
         "dell_monitor",
-        "microcontroller",
         "oscilloscope",
         "soldering_station"
     ]

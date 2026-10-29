@@ -17,20 +17,28 @@ import { ChatMessage, AgentBriefingResponse, AgentQueryResponse } from "@/types/
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
 const QUICK_PROMPTS = [
-  "Summarize visible objects",
-  "Are there any safety hazards?",
-  "What is in the foreground?",
-  "Describe the scene",
+  "What can I build with Raspberry Pi + Microcontroller?",
+  "Show UART wiring guide and voltage precautions",
+  "Write Arduino C++ firmware for sensor node",
+  "Summarize visible objects on bench",
 ];
 
-export const LabAssistant: React.FC = () => {
+interface LabAssistantProps {
+  queuedQuestion?: string | null;
+  onQuestionHandled?: () => void;
+}
+
+export const LabAssistant: React.FC<LabAssistantProps> = ({
+  queuedQuestion,
+  onQuestionHandled,
+}) => {
   const [briefing, setBriefing] = useState<AgentBriefingResponse | null>(null);
   const [loadingBriefing, setLoadingBriefing] = useState<boolean>(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "initial",
       sender: "assistant",
-      text: "Hello! I am your local Lab Vision AI Assistant powered by Liquid AI LFM3 & Qwen 2.5. I am continuously monitoring your camera stream and can answer questions about equipment locations, workbench status, or safety protocols.",
+      text: "Hello! I am your local Lab Vision AI Assistant powered by Liquid AI LFM3 & Qwen 2.5. I monitor your IoT workbench in real time. Show me your Raspberry Pi, microcontrollers, or lab equipment and ask me what you can build or how to wire them up!",
       modelUsed: "lfm3:1.7b",
       timestamp: Date.now(),
     },
@@ -39,6 +47,14 @@ export const LabAssistant: React.FC = () => {
   const [isQuerying, setIsQuerying] = useState<boolean>(false);
 
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-trigger queued question from Project Ideator tab
+  useEffect(() => {
+    if (queuedQuestion) {
+      handleSubmitQuery(queuedQuestion);
+      onQuestionHandled?.();
+    }
+  }, [queuedQuestion]);
 
   // Auto-scroll chat to bottom
   useEffect(() => {

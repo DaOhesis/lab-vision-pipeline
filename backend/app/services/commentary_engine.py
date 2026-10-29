@@ -230,7 +230,46 @@ class CommentaryEngine:
                     }
 
         # ------------------------------------------------------------------
-        # 5. PERIODIC AMBIENT REFRESH (Every 10-12s if nothing new changed)
+        # 5. IOT HARDWARE COMBINATIONS & WORKBENCH ELECTRONICS
+        # ------------------------------------------------------------------
+        detected_names = [d.get("class_name", "").lower() for d in current_detections]
+        has_pi = any("pi" in c or "raspberry" in c for c in detected_names)
+        has_mcu = any("microcontroller" in c or "phone" in c or "remote" in c for c in detected_names)
+        has_soldering = any("soldering" in c for c in detected_names)
+        has_monitor = any("monitor" in c or "screen" in c or "tv" in c for c in detected_names)
+
+        # Raspberry Pi + Microcontroller Combo
+        if ((has_pi and has_mcu) or (detected_names.count("cell_phone") >= 2) or (has_mcu and len(detected_names) >= 2)) and not self._is_rate_limited("iot_pi_mcu", 12.0):
+            self._mark_triggered("iot_pi_mcu")
+            return {
+                "event_type": "iot_hardware_combo",
+                "target": "Raspberry Pi & Microcontroller",
+                "region": "on workbench",
+                "description": "IoT Hardware Combo Detected: Raspberry Pi + Microcontroller! You can build an Edge AI Gateway or Telemetry Node. Check the Lab Builder tab for wiring & firmware!"
+            }
+
+        # Microcontroller + Soldering Station Combo
+        if (has_mcu and has_soldering) and not self._is_rate_limited("iot_mcu_soldering", 12.0):
+            self._mark_triggered("iot_mcu_soldering")
+            return {
+                "event_type": "iot_hardware_combo",
+                "target": "Microcontroller & Soldering Station",
+                "region": "on workbench",
+                "description": "Hardware Detected: Microcontroller + Soldering Station! Ready to assemble a custom sensor expansion shield or carrier board."
+            }
+
+        # Raspberry Pi + Dell Monitor Combo
+        if (has_pi and has_monitor) and not self._is_rate_limited("iot_pi_monitor", 12.0):
+            self._mark_triggered("iot_pi_monitor")
+            return {
+                "event_type": "iot_hardware_combo",
+                "target": "Raspberry Pi & Dell Monitor",
+                "region": "on workbench",
+                "description": "Hardware Detected: Raspberry Pi + Monitor! Ideal setup for deploying an autonomous full-screen Lab Telemetry Kiosk."
+            }
+
+        # ------------------------------------------------------------------
+        # 6. PERIODIC AMBIENT REFRESH (Every 10-12s if nothing new changed)
         # ------------------------------------------------------------------
         if now - self.last_commentary_time > 12.0:
             if curr_people_count == 1:
@@ -261,11 +300,18 @@ class CommentaryEngine:
         # If Ollama is enabled, attempt concise AI commentary
         if settings.OLLAMA_BASE_URL:
             url = f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/generate"
-            system_prompt = (
-                "You are an engaging, witty live video commentator narrating what people are doing on camera. "
-                "Provide a single natural, lively commentary sentence (present tense, max 14 words). "
-                "Do NOT use quotes or meta-commentary."
-            )
+            if event.get("event_type") == "iot_hardware_combo":
+                system_prompt = (
+                    "You are an expert IoT Lab Broadcaster and engineering instructor. "
+                    "The camera detected electronic hardware components together on the desk. "
+                    "Output a punchy, exciting 1-sentence engineering announcement (max 15 words) naming what can be built with them!"
+                )
+            else:
+                system_prompt = (
+                    "You are an engaging, witty live video commentator narrating what people are doing on camera. "
+                    "Provide a single natural, lively commentary sentence (present tense, max 14 words). "
+                    "Do NOT use quotes or meta-commentary."
+                )
             user_prompt = f"OBSERVATION: {event['description']}\nCOMMENTARY:"
 
             try:

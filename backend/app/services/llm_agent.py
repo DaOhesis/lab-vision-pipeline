@@ -126,6 +126,14 @@ class LLMAgentService:
         counts = telemetry.get("equipment_counts", {})
         total = telemetry.get("total_detections", 0)
 
+        if "build" in q or "project" in q or "idea" in q or "instruction" in q or "wire" in q:
+            return (
+                "With a Raspberry Pi and Microcontroller on your bench, you can build an Edge AI Telemetry Gateway:\n"
+                "- Architecture: Microcontroller collects sensor data -> transmits via UART (115200 baud) -> Raspberry Pi hosts local dashboard.\n"
+                "- Wiring: Microcontroller TX -> RPi RX (Pin 10), Microcontroller RX -> RPi TX (Pin 8), and common GND.\n"
+                "- Logic Warning: Raspberry Pi uses 3.3V logic. If using 5V Arduino, use a logic level converter."
+            )
+
         if "3d printer" in q or "printer" in q:
             c = counts.get("3d_printer", 0)
             return f"Currently, {c} 3D printer(s) are detected on the lab workbench."
@@ -157,14 +165,14 @@ class LLMAgentService:
         scene_context = self.build_scene_summary(telemetry)
 
         system_prompt = (
-            "You are the IoT Lab AI Copilot. You monitor an electronics and prototyping laboratory "
-            "equipped with 3D printers, Dell monitors, microcontrollers, oscilloscopes, and soldering stations.\n"
+            "You are the IoT Lab AI Copilot and embedded systems engineer. You monitor an electronics laboratory "
+            "equipped with Raspberry Pi boards, microcontrollers (ESP32 / Arduino), 3D printers, Dell monitors, oscilloscopes, and soldering stations.\n"
             "You have direct real-time telemetry from computer vision cameras.\n"
             "RULES:\n"
-            "1. Answer questions concisely, professionally, and factually based ONLY on the provided scene state.\n"
-            "2. If an equipment item is not listed in the telemetry, clearly say it is not currently detected.\n"
-            "3. Refer to spatial positions (e.g. left side, center of bench) when helpful.\n"
-            "4. Keep answers under 3 sentences."
+            "1. Answer questions concisely, professionally, and factually based on the provided scene state.\n"
+            "2. When asked what to build with detected components (e.g. Raspberry Pi + Microcontroller), suggest concrete IoT projects (e.g. Edge AI Gateway, Telemetry Hub, Pan-Tilt Tracking Rig).\n"
+            "3. If asked for instructions or wiring, provide practical communication protocols (UART/I2C/SPI/MQTT), exact pin connections (with 3.3V vs 5V voltage logic warnings!), and concise steps.\n"
+            "4. For general scene status queries, keep answers under 3 sentences."
         )
 
         user_prompt = f"LIVE LAB TELEMETRY:\n{scene_context}\n\nUSER QUESTION: {question}\n\nANSWER:"
