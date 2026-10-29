@@ -30,8 +30,8 @@ export const LabAssistant: React.FC = () => {
     {
       id: "initial",
       sender: "assistant",
-      text: "Hello! I am your local Lab Vision AI Assistant powered by Qwen 2.5. I am continuously monitoring your camera stream and can answer questions about equipment locations, workbench status, or safety protocols.",
-      modelUsed: "qwen2.5:1.5b",
+      text: "Hello! I am your local Lab Vision AI Assistant powered by Liquid AI LFM3 & Qwen 2.5. I am continuously monitoring your camera stream and can answer questions about equipment locations, workbench status, or safety protocols.",
+      modelUsed: "lfm3:1.7b",
       timestamp: Date.now(),
     },
   ]);

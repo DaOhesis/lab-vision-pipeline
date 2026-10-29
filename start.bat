@@ -52,11 +52,11 @@ if errorlevel 1 (
 REM 4. Launch FastAPI Backend in a dedicated window
 echo.
 echo [*] Starting FastAPI Computer Vision Backend (Port 8000)...
-start "IoT Lab - 1. FastAPI Backend" cmd /k "cd /d ""%~dp0backend"" && title IoT Lab - 1. FastAPI Backend && ""%PY_EXE%"" -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+start "IoT Lab - 1. FastAPI Backend" "%~dp0run_backend.bat"
 
 REM 5. Launch Next.js Dashboard in a dedicated window
 echo [*] Starting Next.js Real-Time Telemetry Dashboard (Port 3000)...
-start "IoT Lab - 2. Next.js Dashboard" cmd /k "cd /d ""%~dp0frontend"" && title IoT Lab - 2. Next.js Dashboard && npm run dev"
+start "IoT Lab - 2. Next.js Dashboard" "%~dp0run_frontend.bat"
 
 REM 6. Wait for services and launch web browser
 echo.
@@ -73,7 +73,7 @@ echo =====================================================================
 echo   - Web Dashboard:     http://localhost:3000 (Webcam runs inside browser)
 echo   - FastAPI Backend:   http://localhost:8000
 echo   - API Swagger Docs:  http://localhost:8000/docs
-echo   - Local LLM:         http://localhost:11434 (Qwen 2.5 1.5B)
+echo   - Local LLM:         http://localhost:11434 (Liquid AI LFM3 / Qwen 2.5)
 echo.
 echo   To stop all services cleanly at any time, run: stop.bat
 echo =====================================================================

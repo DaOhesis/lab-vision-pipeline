@@ -64,11 +64,11 @@ class LLMAgentService:
 
         return "\n".join(lines)
 
-    async def _call_ollama(self, system_prompt: str, user_prompt: str) -> Optional[str]:
-        """Calls the local Ollama /api/generate endpoint asynchronously."""
+    async def _call_single_model(self, model: str, system_prompt: str, user_prompt: str) -> Optional[str]:
+        """Calls Ollama for a specific model."""
         url = f"{self.base_url}/api/generate"
         payload = {
-            "model": self.model,
+            "model": model,
             "system": system_prompt,
             "prompt": user_prompt,
             "stream": False,
@@ -88,13 +88,34 @@ class LLMAgentService:
                     # Normalize unicode punctuation for cross-platform Windows terminal safety
                     resp = resp.replace('\u2011', '-').replace('\u2013', '-').replace('\u2014', '-')
                     resp = resp.replace('\u2018', "'").replace('\u2019', "'").replace('\u201c', '"').replace('\u201d', '"')
-                    return resp
+                    resp = resp.replace('\u2026', '...').replace('\u00a0', ' ')
+                    return resp.encode('ascii', errors='ignore').decode('ascii').strip()
                 else:
-                    logger.warning(f"[LLM] Ollama returned status {res.status_code}: {res.text}")
+                    logger.warning(f"[LLM] Ollama model '{model}' returned status {res.status_code}: {res.text}")
                     return None
         except Exception as e:
-            logger.warning(f"[LLM] Ollama connection failed ({url}): {e}")
+            logger.warning(f"[LLM] Ollama call to model '{model}' failed: {e}")
             return None
+
+    async def _call_ollama(self, system_prompt: str, user_prompt: str) -> Tuple[Optional[str], str]:
+        """
+        Calls the local Ollama endpoint asynchronously.
+        Tries primary configured model, then falls back to secondary SLM if needed.
+        Returns: (response_text, model_name_used)
+        """
+        # 1. Try primary configured model
+        resp = await self._call_single_model(self.model, system_prompt, user_prompt)
+        if resp:
+            return resp, self.model
+
+        # 2. Resilient fallback to secondary installed SLM
+        fallback_model = "qwen2.5:1.5b" if self.model != "qwen2.5:1.5b" else "lfm3:1.7b"
+        logger.info(f"[LLM] Primary model '{self.model}' unavailable or timed out; attempting fallback to '{fallback_model}'...")
+        fallback_resp = await self._call_single_model(fallback_model, system_prompt, user_prompt)
+        if fallback_resp:
+            return fallback_resp, fallback_model
+
+        return None, self.model
 
     def _fallback_rule_based_query(self, query: str, telemetry: Optional[Dict[str, Any]]) -> str:
         """Deterministic rule-based backup when Ollama is offline."""
@@ -148,11 +169,11 @@ class LLMAgentService:
 
         user_prompt = f"LIVE LAB TELEMETRY:\n{scene_context}\n\nUSER QUESTION: {question}\n\nANSWER:"
 
-        response = await self._call_ollama(system_prompt, user_prompt)
+        response, model_used = await self._call_ollama(system_prompt, user_prompt)
         latency_ms = round((time.time() - t0) * 1000, 1)
 
         if response:
-            return response, self.model, latency_ms
+            return response, model_used, latency_ms
 
         # Fallback to rule engine if Ollama is unreachable
         fallback_resp = self._fallback_rule_based_query(question, telemetry)
@@ -183,7 +204,7 @@ class LLMAgentService:
         )
         user_prompt = f"LIVE LAB STATE:\n{scene_context}\n\nEXECUTIVE BRIEFING:"
 
-        response = await self._call_ollama(system_prompt, user_prompt)
+        response, model_used = await self._call_ollama(system_prompt, user_prompt)
         latency_ms = round((time.time() - t0) * 1000, 1)
 
         if response:
@@ -191,7 +212,7 @@ class LLMAgentService:
             safety_eval = "Nominal equipment layout verified by local AI assistant."
             if "caution" in response.lower() or "warning" in response.lower() or "hazard" in response.lower():
                 default_status = "caution"
-            return summary, safety_eval, default_status, self.model, latency_ms
+            return summary, safety_eval, default_status, model_used, latency_ms
 
         # Fallback briefing
         active_items = [f"{k.replace('_', ' ')} ({v})" for k, v in counts.items() if v > 0]

@@ -281,8 +281,10 @@ class CommentaryEngine:
                         text = res.json().get("response", "").strip().strip('"\'')
                         text = text.replace('\u2011', '-').replace('\u2013', '-').replace('\u2014', '-')
                         text = text.replace('\u2018', "'").replace('\u2019', "'").replace('\u201c', '"').replace('\u201d', '"')
-                        if text:
-                            return text
+                        text = text.replace('\u2026', '...').replace('\u00a0', ' ')
+                        cleaned = text.encode('ascii', errors='ignore').decode('ascii').strip()
+                        if cleaned:
+                            return cleaned
             except Exception:
                 pass
 

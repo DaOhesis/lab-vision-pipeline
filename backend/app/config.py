@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     SAVE_SNAPSHOTS: bool = False  # Set True to persist processed frames locally
     
     # Vision Model settings
-    # Primary model path (custom weights if available)
-    MODEL_PATH: str = os.getenv("MODEL_PATH", "models/best.pt")
+    # Primary model path (custom weights or pretrained backbone)
+    MODEL_PATH: str = os.getenv("MODEL_PATH", "models/yolo11s.pt")
     # Default high-accuracy backbone: YOLO11 Small (significantly superior mAP to nano)
     FALLBACK_MODEL: str = os.getenv("FALLBACK_MODEL", "models/yolo11s.pt")
     CONFIDENCE_THRESHOLD: float = float(os.getenv("CONFIDENCE_THRESHOLD", "0.45"))
