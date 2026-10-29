@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Sliders, Eye, EyeOff, Camera, Laptop, Radio, AlertCircle, RefreshCw } from "lucide-react";
+import { Sliders, Eye, EyeOff, Camera, Laptop, Radio, AlertCircle, RefreshCw, Cpu } from "lucide-react";
 import { DetectionItem } from "@/types/telemetry";
 
 interface VideoCanvasProps {
@@ -11,7 +11,8 @@ interface VideoCanvasProps {
   frameIndex: number;
 }
 
-const BACKEND_INGEST_URL = process.env.NEXT_PUBLIC_INGEST_URL || "http://localhost:8000/api/v1/telemetry/frame";
+const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+const BACKEND_INGEST_URL = `${BACKEND_BASE_URL}/api/v1/telemetry/frame`;
 
 export const VideoCanvas: React.FC<VideoCanvasProps> = ({
   frameImage,
@@ -21,12 +22,14 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
 }) => {
   // Default to in-browser webcam mode so webcam opens directly inside the website
   const [sourceMode, setSourceMode] = useState<"remote" | "webcam">("webcam");
-  const [minConfidence, setMinConfidence] = useState<number>(0.35);
+  const [minConfidence, setMinConfidence] = useState<number>(0.45);
   const [showOverlays, setShowOverlays] = useState<boolean>(true);
   const [webcamError, setWebcamError] = useState<string | null>(null);
   const [webcamFps, setWebcamFps] = useState<number>(8); // 8 FPS for smooth balance of low latency & light CPU
   const [videoAspectRatio, setVideoAspectRatio] = useState<string>("16 / 9");
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  const [selectedModel, setSelectedModel] = useState<string>("yolo11s.pt");
+  const [isSwitchingModel, setIsSwitchingModel] = useState<boolean>(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -154,6 +157,34 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
     };
   }, [sourceMode, startWebcam, stopWebcam]);
 
+  // Dynamic model switching
+  const handleModelChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newModel = e.target.value;
+    setSelectedModel(newModel);
+    setIsSwitchingModel(true);
+    try {
+      await fetch(`${BACKEND_BASE_URL}/api/v1/model/select`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model_name: newModel }),
+      });
+    } catch (err) {
+      console.error("Failed to switch model:", err);
+    } finally {
+      setIsSwitchingModel(false);
+    }
+  };
+
+  // Sync confidence slider with backend
+  const handleConfidenceChange = (newConf: number) => {
+    setMinConfidence(newConf);
+    fetch(`${BACKEND_BASE_URL}/api/v1/model/settings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confidence_threshold: newConf }),
+    }).catch(() => {});
+  };
+
   // Update dynamic aspect ratio when video metadata arrives
   const handleLoadedMetadata = () => {
     if (videoRef.current && videoRef.current.videoWidth && videoRef.current.videoHeight) {
@@ -165,9 +196,9 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
   const visibleDetections = detections.filter((d) => d.confidence >= minConfidence);
 
   return (
-    <div className="flex flex-col bg-lab-850 rounded-xl border border-lab-700 overflow-hidden shadow-xl">
+    <div className="flex flex-col bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl backdrop-blur-sm">
       {/* Viewport Top Bar */}
-      <div className="flex flex-wrap items-center justify-between px-4 py-2.5 bg-lab-800/80 border-b border-lab-700 gap-2">
+      <div className="flex flex-wrap items-center justify-between px-4 py-3 bg-slate-950/70 border-b border-slate-800 gap-2">
         <div className="flex items-center gap-3">
           {/* Source Selector Tabs */}
           <div className="inline-flex rounded-lg bg-lab-900/90 p-0.5 border border-lab-700 text-xs">
@@ -180,7 +211,7 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
               }`}
             >
               <Laptop className="w-3.5 h-3.5 text-cyan-400" />
-              Laptop Camera (In-Website)
+              Laptop Camera
             </button>
             <button
               onClick={() => setSourceMode("remote")}
@@ -191,7 +222,7 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
               }`}
             >
               <Radio className="w-3.5 h-3.5 text-emerald-400" />
-              ESP32 / Remote Stream
+              ESP32 / Stream
             </button>
           </div>
 
@@ -201,19 +232,34 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
         </div>
 
         {/* Viewport Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Model Selector Dropdown */}
+          <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-lab-900/90 px-2 py-1 rounded-md border border-lab-700">
+            <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+            <select
+              value={selectedModel}
+              onChange={handleModelChange}
+              disabled={isSwitchingModel}
+              className="bg-transparent text-cyan-300 font-mono text-[11px] focus:outline-none cursor-pointer"
+            >
+              <option value="yolo11s.pt" className="bg-lab-900">YOLO11s (High Acc)</option>
+              <option value="yolo11m.pt" className="bg-lab-900">YOLO11m (Max Acc)</option>
+              <option value="yolo11n.pt" className="bg-lab-900">YOLO11n (Fast Nano)</option>
+            </select>
+          </div>
+
           {/* FPS Selector for Webcam */}
           {sourceMode === "webcam" && (
-            <div className="flex items-center gap-1 text-xs text-slate-400">
-              <span className="hidden md:inline text-[11px]">Rate:</span>
+            <div className="hidden sm:flex items-center gap-1 text-xs text-slate-400">
+              <span className="text-[11px]">FPS:</span>
               <select
                 value={webcamFps}
                 onChange={(e) => setWebcamFps(Number(e.target.value))}
                 className="bg-lab-900 border border-lab-700 text-cyan-300 rounded px-1.5 py-0.5 text-xs focus:outline-none"
               >
-                <option value={5}>5 FPS</option>
-                <option value={8}>8 FPS</option>
-                <option value={12}>12 FPS</option>
+                <option value={5}>5</option>
+                <option value={8}>8</option>
+                <option value={12}>12</option>
               </select>
             </div>
           )}
@@ -221,17 +267,17 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
           {/* Confidence Slider */}
           <div className="hidden md:flex items-center gap-2 text-xs text-slate-400">
             <Sliders className="w-3.5 h-3.5" />
-            <span>Min Conf:</span>
+            <span>Conf:</span>
             <input
               type="range"
-              min="0.1"
-              max="0.9"
+              min="0.2"
+              max="0.85"
               step="0.05"
               value={minConfidence}
-              onChange={(e) => setMinConfidence(parseFloat(e.target.value))}
-              className="w-20 accent-cyan-500 h-1 bg-lab-700 rounded-lg cursor-pointer"
+              onChange={(e) => handleConfidenceChange(parseFloat(e.target.value))}
+              className="w-16 lg:w-20 accent-cyan-500 h-1 bg-lab-700 rounded-lg cursor-pointer"
             />
-            <span className="font-mono text-slate-200 w-8">{Math.round(minConfidence * 100)}%</span>
+            <span className="font-mono text-slate-200 w-7">{Math.round(minConfidence * 100)}%</span>
           </div>
 
           {/* Toggle Overlay Button */}
@@ -385,7 +431,7 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
                       onClick={() => setSourceMode("webcam")}
                       className="text-cyan-400 underline font-semibold hover:text-cyan-300"
                     >
-                      Laptop Camera (In-Website)
+                      Laptop Camera
                     </button>{" "}
                     to view your webcam directly!
                   </p>
@@ -404,7 +450,7 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
               }`}
             />
             <span className={sourceMode === "webcam" ? "text-cyan-400" : "text-emerald-400"}>
-              SOURCE: {sourceMode === "webcam" ? "LAPTOP WEBCAM (IN-WEBSITE)" : "REMOTE/ESP32"}
+              MODEL: {selectedModel.replace(".pt", "").toUpperCase()}
             </span>
             <span className="text-slate-500">|</span>
             <span>INFER: {latencyMs}ms</span>

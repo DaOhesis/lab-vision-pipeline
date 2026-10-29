@@ -135,6 +135,50 @@ async def health_check():
         uptime_seconds=round(time.time() - server_start_time, 2)
     )
 
+@router.get("/model/info")
+async def get_model_info():
+    """Returns active YOLO model details, available models, and thresholds."""
+    available = []
+    for m in ["models/best.pt", "models/yolo11s.pt", "models/yolo11n.pt", "models/yolo11m.pt", "yolo11s.pt", "yolo11n.pt", "yolov8n.pt"]:
+        if os.path.exists(m):
+            available.append(os.path.basename(m))
+    return {
+        "active_model": os.path.basename(detector.active_model_path),
+        "active_model_path": detector.active_model_path,
+        "confidence_threshold": detector.confidence_threshold,
+        "iou_threshold": detector.iou_threshold,
+        "tracker_enabled": settings.ENABLE_TRACKER,
+        "device": settings.DEVICE,
+        "available_models": list(dict.fromkeys(available))
+    }
+
+@router.post("/model/select")
+async def select_model(request: Request):
+    """Dynamically switches the active YOLO model weights."""
+    data = await request.json()
+    model_name = data.get("model_name", "yolo11s.pt")
+    success = detector.switch_model(model_name)
+    if not success:
+        raise HTTPException(status_code=400, detail=f"Failed to load model {model_name}")
+    return {
+        "status": "success",
+        "active_model": os.path.basename(detector.active_model_path)
+    }
+
+@router.post("/model/settings")
+async def update_model_settings(request: Request):
+    """Updates model inference parameters at runtime."""
+    data = await request.json()
+    if "confidence_threshold" in data:
+        detector.confidence_threshold = max(0.1, min(0.95, float(data["confidence_threshold"])))
+    if "iou_threshold" in data:
+        detector.iou_threshold = max(0.1, min(0.95, float(data["iou_threshold"])))
+    return {
+        "status": "updated",
+        "confidence_threshold": detector.confidence_threshold,
+        "iou_threshold": detector.iou_threshold
+    }
+
 @router.post("/agent/query", response_model=AgentQueryResponse)
 async def query_lab_agent(request: AgentQueryRequest):
     """

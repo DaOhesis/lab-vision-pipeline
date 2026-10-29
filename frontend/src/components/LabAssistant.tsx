@@ -17,10 +17,10 @@ import { ChatMessage, AgentBriefingResponse, AgentQueryResponse } from "@/types/
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
 const QUICK_PROMPTS = [
-  "Summarize workbench activity",
+  "Summarize visible objects",
   "Are there any safety hazards?",
-  "Where is the microcontroller?",
-  "How many monitors are visible?",
+  "What is in the foreground?",
+  "Describe the scene",
 ];
 
 export const LabAssistant: React.FC = () => {
