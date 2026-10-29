@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { TelemetryData, WebSocketFrameMessage, ConnectionStatus } from "@/types/telemetry";
+import { TelemetryData, WebSocketFrameMessage, ConnectionStatus, LiveCommentaryItem } from "@/types/telemetry";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/api/v1/ws/stream";
 
@@ -10,6 +10,8 @@ export function useLabStream() {
   const [telemetry, setTelemetry] = useState<TelemetryData | null>(null);
   const [frameImage, setFrameImage] = useState<string | null>(null);
   const [fps, setFps] = useState<number>(0);
+  const [latestCommentary, setLatestCommentary] = useState<LiveCommentaryItem | null>(null);
+  const [commentaryFeed, setCommentaryFeed] = useState<LiveCommentaryItem[]>([]);
   
   const wsRef = useRef<WebSocket | null>(null);
   const frameCountRef = useRef<number>(0);
@@ -29,8 +31,14 @@ export function useLabStream() {
       ws.onmessage = (event) => {
         try {
           const data: WebSocketFrameMessage = JSON.parse(event.data);
-          if (data.telemetry) {
+          if (data.type === "live_commentary" && data.commentary) {
+            setLatestCommentary(data.commentary);
+            setCommentaryFeed((prev) => [data.commentary!, ...prev.slice(0, 20)]);
+          } else if (data.telemetry) {
             setTelemetry(data.telemetry);
+            if (data.telemetry.latest_commentary) {
+              setLatestCommentary(data.telemetry.latest_commentary);
+            }
           }
           if (data.annotated_frame_base64) {
             setFrameImage(data.annotated_frame_base64);
@@ -85,6 +93,8 @@ export function useLabStream() {
     telemetry,
     frameImage,
     fps,
+    latestCommentary,
+    commentaryFeed,
     reconnect: connect
   };
 }

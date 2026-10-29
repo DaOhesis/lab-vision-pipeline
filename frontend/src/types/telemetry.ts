@@ -5,6 +5,16 @@ export interface DetectionItem {
   normalized_box?: [number, number, number, number]; // [norm_x1, norm_y1, norm_x2, norm_y2]
 }
 
+export interface LiveCommentaryItem {
+  id: string;
+  text: string;
+  action_type: string;
+  target: string;
+  region: string;
+  timestamp: number;
+  model_used?: string;
+}
+
 export interface TelemetryData {
   device_id: string;
   frame_index: number;
@@ -15,12 +25,14 @@ export interface TelemetryData {
   detections: DetectionItem[];
   image_width: number;
   image_height: number;
+  latest_commentary?: LiveCommentaryItem | null;
 }
 
 export interface WebSocketFrameMessage {
-  type: "frame_update" | "initial_state";
-  telemetry: TelemetryData;
+  type: "frame_update" | "initial_state" | "live_commentary";
+  telemetry?: TelemetryData;
   annotated_frame_base64?: string;
+  commentary?: LiveCommentaryItem;
 }
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error";

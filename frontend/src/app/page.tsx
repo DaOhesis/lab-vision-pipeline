@@ -6,11 +6,12 @@ import { Header } from "@/components/Header";
 import { VideoCanvas } from "@/components/VideoCanvas";
 import { DetectionFeed } from "@/components/DetectionFeed";
 import { LabAssistant } from "@/components/LabAssistant";
-import { ListFilter, Bot, Eye, Layers } from "lucide-react";
+import { CommentaryTicker } from "@/components/CommentaryTicker";
+import { ListFilter, Bot, Eye, Layers, Mic } from "lucide-react";
 
 export default function DashboardPage() {
-  const { status, telemetry, frameImage, fps, reconnect } = useLabStream();
-  const [activeSideTab, setActiveSideTab] = useState<"audit" | "copilot">("audit");
+  const { status, telemetry, frameImage, fps, latestCommentary, commentaryFeed, reconnect } = useLabStream();
+  const [activeSideTab, setActiveSideTab] = useState<"narrator" | "audit" | "copilot">("narrator");
 
   const detections = telemetry?.detections || [];
   const latencyMs = telemetry?.inference_latency_ms || 0;
@@ -83,6 +84,7 @@ export default function DashboardPage() {
               detections={detections}
               latencyMs={latencyMs}
               frameIndex={frameIndex}
+              latestCommentary={latestCommentary}
             />
           </div>
 
@@ -90,6 +92,17 @@ export default function DashboardPage() {
           <div className="lg:col-span-4 flex flex-col space-y-3">
             {/* Tab Selector */}
             <div className="flex rounded-xl bg-slate-900/90 p-1 border border-slate-800 text-xs shadow-md">
+              <button
+                onClick={() => setActiveSideTab("narrator")}
+                className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg font-medium transition-all ${
+                  activeSideTab === "narrator"
+                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/30 shadow-sm font-semibold"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Mic className="w-3.5 h-3.5 text-rose-400" />
+                AI Narrator
+              </button>
               <button
                 onClick={() => setActiveSideTab("audit")}
                 className={`flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg font-medium transition-all ${
@@ -99,7 +112,7 @@ export default function DashboardPage() {
                 }`}
               >
                 <ListFilter className="w-3.5 h-3.5" />
-                Live Objects ({detections.length})
+                Objects ({detections.length})
               </button>
               <button
                 onClick={() => setActiveSideTab("copilot")}
@@ -110,13 +123,18 @@ export default function DashboardPage() {
                 }`}
               >
                 <Bot className="w-3.5 h-3.5" />
-                AI Copilot
+                AI Chat
               </button>
             </div>
 
             {/* Active Panel View */}
             <div className="h-[490px]">
-              {activeSideTab === "audit" ? (
+              {activeSideTab === "narrator" ? (
+                <CommentaryTicker
+                  commentaryFeed={commentaryFeed}
+                  latestCommentary={latestCommentary}
+                />
+              ) : activeSideTab === "audit" ? (
                 <DetectionFeed
                   detections={detections}
                   timestampMs={telemetry?.timestamp_ms}

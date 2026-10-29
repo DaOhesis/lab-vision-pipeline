@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Sliders, Eye, EyeOff, Camera, Laptop, Radio, AlertCircle, RefreshCw, Cpu } from "lucide-react";
-import { DetectionItem } from "@/types/telemetry";
+import { Sliders, Eye, EyeOff, Camera, Laptop, Radio, AlertCircle, RefreshCw, Cpu, Mic } from "lucide-react";
+import { DetectionItem, LiveCommentaryItem } from "@/types/telemetry";
 
 interface VideoCanvasProps {
   frameImage: string | null;
   detections: DetectionItem[];
   latencyMs: number;
   frameIndex: number;
+  latestCommentary?: LiveCommentaryItem | null;
 }
 
 const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
@@ -19,17 +20,31 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
   detections,
   latencyMs,
   frameIndex,
+  latestCommentary,
 }) => {
   // Default to in-browser webcam mode so webcam opens directly inside the website
   const [sourceMode, setSourceMode] = useState<"remote" | "webcam">("webcam");
   const [minConfidence, setMinConfidence] = useState<number>(0.45);
   const [showOverlays, setShowOverlays] = useState<boolean>(true);
+  const [showCommentary, setShowCommentary] = useState<boolean>(true);
+  const [activeBanner, setActiveBanner] = useState<LiveCommentaryItem | null>(null);
   const [webcamError, setWebcamError] = useState<string | null>(null);
   const [webcamFps, setWebcamFps] = useState<number>(8); // 8 FPS for smooth balance of low latency & light CPU
   const [videoAspectRatio, setVideoAspectRatio] = useState<string>("16 / 9");
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [selectedModel, setSelectedModel] = useState<string>("yolo11s.pt");
   const [isSwitchingModel, setIsSwitchingModel] = useState<boolean>(false);
+
+  // Auto-dismiss or refresh live commentary banner
+  useEffect(() => {
+    if (latestCommentary) {
+      setActiveBanner(latestCommentary);
+      const timer = setTimeout(() => {
+        // Leave active banner or fade out after 6.5s
+      }, 6500);
+      return () => clearTimeout(timer);
+    }
+  }, [latestCommentary]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -288,6 +303,20 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
           >
             {showOverlays ? <Eye className="w-3.5 h-3.5 text-cyan-400" /> : <EyeOff className="w-3.5 h-3.5" />}
           </button>
+
+          {/* Toggle Live Commentary Button */}
+          <button
+            onClick={() => setShowCommentary(!showCommentary)}
+            title={showCommentary ? "Disable AI Commentary Overlay" : "Enable AI Commentary Overlay"}
+            className={`p-1.5 rounded transition-colors flex items-center gap-1.5 text-[11px] font-medium ${
+              showCommentary
+                ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                : "bg-lab-700 hover:bg-lab-600 text-slate-400"
+            }`}
+          >
+            <Mic className={`w-3.5 h-3.5 ${showCommentary ? "text-rose-400 animate-pulse" : ""}`} />
+            <span className="hidden lg:inline">AI Narrator</span>
+          </button>
         </div>
       </div>
 
@@ -439,6 +468,21 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
               </div>
             )}
           </>
+        )}
+
+        {/* Live Broadcast Commentary Overlay Banner */}
+        {showCommentary && activeBanner && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 max-w-[94%] sm:max-w-xl transition-all duration-300 pointer-events-none select-none">
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-slate-950/90 backdrop-blur-md border border-cyan-500/50 shadow-2xl text-slate-100">
+              <div className="flex items-center gap-1.5 shrink-0 px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-bold tracking-wider uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                AI NARRATOR
+              </div>
+              <p className="text-xs sm:text-sm font-medium text-cyan-200 line-clamp-2">
+                {activeBanner.text}
+              </p>
+            </div>
+          </div>
         )}
 
         {/* Floating In-Stream Telemetry Pill */}

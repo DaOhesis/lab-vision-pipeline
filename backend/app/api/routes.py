@@ -10,6 +10,7 @@ from app.config import settings
 from app.services.detector import detector
 from app.services.stream_manager import stream_manager
 from app.services.llm_agent import llm_agent
+from app.services.commentary_engine import commentary_engine
 from app.api.schemas import (
     HealthStatus,
     TelemetryResponse,
@@ -56,6 +57,7 @@ async def ingest_frame(
         "device_id": x_device_id,
         "frame_index": x_frame_index,
         "timestamp_ms": timestamp,
+        "latest_commentary": commentary_engine.last_commentary,
         **summary
     }
 
@@ -65,12 +67,23 @@ async def ingest_frame(
     # Convert annotated image to base64 for unified WebSocket payload
     base64_frame = base64.b64encode(annotated_bytes).decode("utf-8")
     
-    # Non-blocking broadcast to all active Next.js dashboard clients
+    # Non-blocking broadcast of frame telemetry to all active Next.js dashboard clients
     asyncio.create_task(stream_manager.broadcast({
         "type": "frame_update",
         "telemetry": telemetry_data,
         "annotated_frame_base64": f"data:image/jpeg;base64,{base64_frame}"
     }))
+
+    # Non-blocking event analysis for live stream commentary
+    async def handle_commentary():
+        commentary = await commentary_engine.process_frame_detections(summary.get("detections", []))
+        if commentary:
+            await stream_manager.broadcast({
+                "type": "live_commentary",
+                "commentary": commentary
+            })
+
+    asyncio.create_task(handle_commentary())
 
     return JSONResponse(status_code=200, content=telemetry_data)
 
@@ -121,6 +134,18 @@ async def websocket_stream_endpoint(websocket: WebSocket):
     except Exception as e:
         logger.error(f"[WS] Connection exception: {e}")
         stream_manager.disconnect(websocket)
+
+@router.get("/commentary/latest")
+async def get_latest_commentary():
+    """Returns the most recent AI commentary message."""
+    if commentary_engine.last_commentary is None:
+        return JSONResponse(status_code=200, content={"commentary": None, "message": "No action events detected yet."})
+    return {"commentary": commentary_engine.last_commentary}
+
+@router.get("/commentary/history")
+async def get_commentary_history():
+    """Returns recent stream narration and action commentary history."""
+    return {"history": commentary_engine.commentary_history}
 
 @router.get("/health", response_model=HealthStatus)
 async def health_check():

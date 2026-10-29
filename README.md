@@ -2,6 +2,8 @@
 
 An end-to-end edge-to-cloud computer vision and intelligent reasoning pipeline designed for real-time laboratory equipment tracking (3D printers, monitors, microcontrollers, oscilloscopes, soldering stations) using an **ESP32-CAM**, **FastAPI**, **PyTorch / YOLO11**, **Qwen 2.5 1.5B (Local SLM)**, and **Next.js**.
 
+Includes **Live Action Commentary & Broadcast Narration**: automatically detects physical events (e.g., someone picking up a water bottle, entering the background, or moving a tool) and renders real-time broadcast narration overlays on the video stream powered by your local LLM.
+
 All components run locally on your machine with low-latency streaming and zero containerization overhead.
 
 ---
