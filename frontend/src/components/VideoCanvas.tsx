@@ -276,54 +276,44 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
                   className="w-full h-full object-contain select-none block"
                 />
 
-                {/* Real-time Dynamic SVG Bounding Box Overlays */}
+                {/* Real-time Dynamic HTML Bounding Box & Label Overlays */}
                 {showOverlays && (
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
                     {visibleDetections.map((det, idx) => {
                       if (!det.normalized_box) return null;
                       const [nx1, ny1, nx2, ny2] = det.normalized_box;
-                      const x = `${nx1 * 100}%`;
-                      const y = `${ny1 * 100}%`;
-                      const width = `${Math.max((nx2 - nx1) * 100, 0)}%`;
-                      const height = `${Math.max((ny2 - ny1) * 100, 0)}%`;
+                      const left = Math.max(0, Math.min(100, nx1 * 100));
+                      const top = Math.max(0, Math.min(100, ny1 * 100));
+                      const width = Math.max(0, Math.min(100 - left, (nx2 - nx1) * 100));
+                      const height = Math.max(0, Math.min(100 - top, (ny2 - ny1) * 100));
                       const isNearTop = ny1 < 0.08;
 
                       return (
-                        <g key={idx}>
-                          {/* Bounding Box Rectangle */}
-                          <rect
-                            x={x}
-                            y={y}
-                            width={width}
-                            height={height}
-                            fill="rgba(6, 182, 212, 0.14)"
-                            stroke="#06b6d4"
-                            strokeWidth="2.5"
-                            rx="3"
-                          />
-                          {/* Label Badge */}
-                          <rect
-                            x={x}
-                            y={isNearTop ? `calc(${y} + 4px)` : `calc(${y} - 20px)`}
-                            width={`${Math.min(det.class_name.length * 8 + 48, 180)}px`}
-                            height="18"
-                            fill="#06b6d4"
-                            rx="3"
-                          />
-                          <text
-                            x={`calc(${x} + 4px)`}
-                            y={isNearTop ? `calc(${y} + 17px)` : `calc(${y} - 7px)`}
-                            fill="#082f49"
-                            fontSize="10.5"
-                            fontFamily="monospace"
-                            fontWeight="bold"
+                        <div
+                          key={idx}
+                          className="absolute border-2 border-cyan-400 bg-cyan-400/15 rounded pointer-events-none transition-all duration-75 shadow-sm"
+                          style={{
+                            left: `${left}%`,
+                            top: `${top}%`,
+                            width: `${width}%`,
+                            height: `${height}%`,
+                          }}
+                        >
+                          {/* Object Name Badge directly on top of the blue box */}
+                          <div
+                            className={`absolute ${
+                              isNearTop ? "top-1 left-1" : "-top-7 left-0"
+                            } bg-cyan-400 text-slate-950 font-mono font-bold text-xs px-2 py-0.5 rounded shadow-lg whitespace-nowrap flex items-center gap-1.5 z-30 select-none`}
                           >
-                            {det.class_name} {Math.round(det.confidence * 100)}%
-                          </text>
-                        </g>
+                            <span className="capitalize">{det.class_name.replace(/_/g, " ")}</span>
+                            <span className="bg-slate-950/25 text-slate-950 text-[10px] px-1 py-0.2 rounded font-semibold">
+                              {Math.round(det.confidence * 100)}%
+                            </span>
+                          </div>
+                        </div>
                       );
                     })}
-                  </svg>
+                  </div>
                 )}
               </div>
             )}
@@ -334,40 +324,51 @@ export const VideoCanvas: React.FC<VideoCanvasProps> = ({
         {sourceMode === "remote" && (
           <>
             {frameImage ? (
-              <div className="relative w-full h-full">
+              <div className="relative w-full h-full flex items-center justify-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={frameImage}
                   alt="Live Camera Feed"
-                  className="w-full h-full object-contain select-none"
+                  className="w-full h-full object-contain select-none block"
                 />
 
                 {showOverlays && (
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden">
                     {visibleDetections.map((det, idx) => {
                       if (!det.normalized_box) return null;
                       const [nx1, ny1, nx2, ny2] = det.normalized_box;
-                      const x = `${nx1 * 100}%`;
-                      const y = `${ny1 * 100}%`;
-                      const width = `${Math.max((nx2 - nx1) * 100, 0)}%`;
-                      const height = `${Math.max((ny2 - ny1) * 100, 0)}%`;
+                      const left = Math.max(0, Math.min(100, nx1 * 100));
+                      const top = Math.max(0, Math.min(100, ny1 * 100));
+                      const width = Math.max(0, Math.min(100 - left, (nx2 - nx1) * 100));
+                      const height = Math.max(0, Math.min(100 - top, (ny2 - ny1) * 100));
+                      const isNearTop = ny1 < 0.08;
 
                       return (
-                        <g key={idx}>
-                          <rect
-                            x={x}
-                            y={y}
-                            width={width}
-                            height={height}
-                            fill="rgba(16, 185, 129, 0.08)"
-                            stroke="#10b981"
-                            strokeWidth="2"
-                            rx="3"
-                          />
-                        </g>
+                        <div
+                          key={idx}
+                          className="absolute border-2 border-emerald-400 bg-emerald-400/15 rounded pointer-events-none transition-all duration-75 shadow-sm"
+                          style={{
+                            left: `${left}%`,
+                            top: `${top}%`,
+                            width: `${width}%`,
+                            height: `${height}%`,
+                          }}
+                        >
+                          {/* Object Name Badge directly on top of the green box */}
+                          <div
+                            className={`absolute ${
+                              isNearTop ? "top-1 left-1" : "-top-7 left-0"
+                            } bg-emerald-400 text-slate-950 font-mono font-bold text-xs px-2 py-0.5 rounded shadow-lg whitespace-nowrap flex items-center gap-1.5 z-30 select-none`}
+                          >
+                            <span className="capitalize">{det.class_name.replace(/_/g, " ")}</span>
+                            <span className="bg-slate-950/25 text-slate-950 text-[10px] px-1 py-0.2 rounded font-semibold">
+                              {Math.round(det.confidence * 100)}%
+                            </span>
+                          </div>
+                        </div>
                       );
                     })}
-                  </svg>
+                  </div>
                 )}
               </div>
             ) : (
