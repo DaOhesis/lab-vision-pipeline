@@ -47,8 +47,8 @@ The platform transforms passive camera streaming into an **active situational aw
 
 | Layer | Technologies & Frameworks | Description & Responsibilities |
 |---|---|---|
-| **Vision Inference Engine** | **PyTorch**, **Ultralytics YOLO11** (`yolo11n`, `yolo11s`, `yolo11m`), **OpenCV (`cv2`)**, **NumPy** | High-precision object regression, C3k2 & C2PSA attention modules, bounding box localization, custom training pipeline |
-| **GPU Acceleration** | **NVIDIA RTX A2000 GPU** (Ampere, CUDA 12.x, TensorRT, cuDNN, FP16) | Hardware acceleration for sub-10ms YOLO inference & on-device Vision-Language Models (VLMs) |
+| **Vision Inference Engine** | **PyTorch**, **Ultralytics YOLO11** (`yolo11n`, `yolo11s`, `yolo11m`, `yolo11x`), **OpenCV (`cv2`)**, **NumPy** | High-precision object regression, C3k2 & C2PSA attention modules, bounding box localization, custom training pipeline |
+| **GPU Acceleration** | **NVIDIA RTX A2000 (12GB GDDR6 ECC VRAM)**, CUDA 12.x, TensorRT, cuDNN, FP16/INT8 | Hardware acceleration for sub-8ms YOLO11 inference & dual-resident 7B–11B Vision-Language Models (VLMs) |
 | **Backend API & WebSockets** | **FastAPI**, **Uvicorn (ASGI)**, **AsyncIO**, **Pydantic v2**, **HTTPX** | Binary JPEG ingestion, async worker thread pools, full-duplex WebSocket hub, dynamic runtime model switching |
 | **Spatial & Temporal Logic** | Custom Python Algorithms (`TemporalTracker`, `CommentaryEngine`) | IoU multi-frame tracking, exponential moving average (EMA) bounding box smoothing, Euclidean spatial proximity math, action trigger heuristics |
 | **Edge SLM / Local Reasoning** | **Ollama**, **Qwen 2.5 1.5B** (or Llama 3.2 1B/3B) | Grounded scene summarization, natural language reasoning over spatial telemetry, zero-shot situational briefings |
@@ -344,34 +344,38 @@ flowchart LR
 
 ---
 
-### 5.7 Hardware Acceleration Blueprint: Leveraging the NVIDIA RTX A2000 GPU
+### 5.7 Hardware Acceleration Blueprint: Leveraging the NVIDIA RTX A2000 (12GB VRAM)
 
-The availability of a dedicated workstation GPU (**NVIDIA RTX A2000**, Ampere Architecture with 3,328 CUDA Cores, 104 Tensor Cores, and 6GB / 12GB GDDR6 ECC VRAM) unlocks transformative capabilities for the Live Teacher update:
+The availability of a dedicated workstation GPU with **12 GB GDDR6 ECC VRAM** (**NVIDIA RTX A2000 12GB**, Ampere Architecture with 3,328 CUDA Cores, 104 Tensor Cores, and 288 GB/s memory bandwidth) is a major architectural advantage. It completely eliminates memory bottlenecks and allows us to run **both heavy vision tracking AND high-parameter Vision-Language Models simultaneously in VRAM**.
 
 #### 1. Instant Vision Engine Acceleration (TensorRT & FP16 CUDA)
-- **Zero-Latency Video Processing**: Moving from CPU inference (~40–60 ms) to CUDA FP16 drops YOLO11 latency to **under 6–8 ms** (~120+ FPS throughput).
-- **Larger Model Backbones**: We can comfortably run **YOLO11x (Extra Large)** or **YOLO11m** at full resolution (1280x720 or 1920x1080) for pin-level localization without dropping a single camera frame.
+- **Zero-Latency Video Processing**: Moving from CPU inference (~40–60 ms) to CUDA FP16 drops YOLO11 latency to **under 5–8 ms** (~120–160 FPS throughput).
+- **Flagship Vision Backbone**: With 12GB VRAM, we can run **`YOLO11x` (Extra Large - 56.9M params)** at high native resolution (`1920x1080` or `1280x720`) to effortlessly localize microscopic pins, breadboard row coordinates, and fine component leads without any frame lag.
 
-#### 2. On-Device Vision-Language Models (VLMs)
-With the A2000's Tensor Cores and VRAM, we can host state-of-the-art multimodal vision-language models locally:
-- **`Qwen2-VL-7B-Instruct` (4-bit AWQ / GPTQ / GGUF)** or **`Qwen2-VL-2B-Instruct`**:
-  - Full native visual grounding capabilities.
-  - Can read IC component model numbers, silkscreen PCB labels, and resistor color-code bands directly from the live video feed.
-  - Deep spatial understanding: understands phrases like *"jumper wire plugged into column 15, row B"*.
-- **`MiniCPM-V 2.6`**:
-  - Unmatched high-resolution OCR and circuit diagram inspection on edge GPUs.
-- **`Llama-3.2-Vision` (11B quantized)**:
-  - Complex conversational reasoning and pedagogy for interactive tutoring dialogue.
+#### 2. Full-Tier On-Device Vision-Language Models (VLMs)
+Unlike 4GB or 6GB systems that require aggressive 3-bit or 4-bit quantization, **12GB VRAM** allows high-precision, uncompromised multimodal models:
+- **`Qwen2-VL-7B-Instruct` (INT8 / 8-bit or AWQ 4-bit with large context)**:
+  - Top-tier open-source vision-language model.
+  - Native visual grounding: can directly identify and segment micro-text (e.g. `ESP32-WROOM-32`, `ATmega328P`, `VCC/GND/D4/D5` silkscreen).
+  - Can read resistor color-code bands (Brown-Black-Red = 1kΩ) and verify jumper wire endpoint insertions.
+- **`MiniCPM-V 2.6` (8B params, INT4 / INT8)**:
+  - SOTA dense visual comprehension and multi-image temporal analysis.
+  - Capable of accepting sequential frame crops to watch the student's hands insert a wire in real time.
+- **`Llama-3.2-Vision-11B` (Q4_K_M / AWQ)**:
+  - Exceptional conversational fluency and pedagogical reasoning for the interactive teacher dialogue.
 
-#### 3. Dual-Model VRAM Allocation Budget (A2000 Profile)
-| Model / Component | Precision / Quantization | VRAM Allocated | Latency Budget |
-|---|---|---|---|
-| **YOLO11m / YOLO11x Tracker** | FP16 (CUDA / TensorRT) | ~1.2 GB | ~6 – 9 ms (Real-time tracking) |
-| **Local VLM (Qwen2-VL / MiniCPM-V)** | 4-bit AWQ / INT4 | ~4.2 – 5.0 GB | ~0.8 – 1.4 s (Step verification & pedagogy) |
-| **CUDA Frame & Ingestion Buffers** | FP16 / INT8 | ~0.4 GB | Instantaneous |
-| **Total Estimated Allocation** | — | **~5.8 – 6.6 GB** | *Fits cleanly within A2000 VRAM budget* |
+#### 3. Dual-Model VRAM Allocation Budget (12GB Profile)
+Because we have 12GB of VRAM, both the 60+ FPS spatial tracker and the multi-modal reasoning engine can reside in GPU memory simultaneously with zero cold-starts or model-swapping latency:
 
-This dual-tier GPU configuration guarantees real-time visual tracking (60+ FPS) while concurrently enabling deep multimodal reasoning for the Live Teacher.
+| Model / Component | Precision / Quantization | VRAM Allocated | Latency Budget | Functional Role |
+|---|---|---|---|---|
+| **YOLO11x / YOLO11m Tracker** | FP16 (CUDA / TensorRT) | ~1.6 – 2.0 GB | **5 – 8 ms** | Real-time pin, wire, and component localization (60 FPS) |
+| **Qwen2-VL-7B / MiniCPM-V 2.6** | INT8 / AWQ 4-bit | ~5.5 – 6.8 GB | **0.6 – 1.1 s** | Circuit verification, mistake detection & step validation |
+| **Temporal Image Buffers** | FP16 (4–6 frames) | ~0.6 GB | Instantaneous | Multi-frame temporal hand action history |
+| **Free VRAM Headroom** | — | **~2.6 – 4.3 GB** | — | System stability, dynamic token generation, zero OOM risk |
+| **Total VRAM Capacity** | — | **12.0 GB** | — | *Comfortably accommodates entire dual-model stack* |
+
+This hardware headroom transforms the project from a standard object detector into a **real-time, zero-compromise AI Engineering Lab Assistant** running 100% locally on your machine.
 
 ---
 
